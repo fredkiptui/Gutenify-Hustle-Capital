@@ -97,3 +97,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Sets up WordPress vars and included files. */
 require_once ABSPATH . 'wp-settings.php';
+
+define('STAATIC_KEY', 'q<efGKbW`D4GPKY$*EfWvuKTiY`jr~v:Nkw>#L:3(kKOo4A?/iHVi(6ZQIE4wv;D');
+

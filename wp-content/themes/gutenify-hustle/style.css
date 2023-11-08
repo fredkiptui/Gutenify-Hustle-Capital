@@ -1459,15 +1459,3 @@ body .editor-styles-wrapper a:where(:not(.wp-element-button)) {
   .woocommerce input.button.alt:active {
     background: var(--wp--preset--color--secondary);
     color: var(--wp--preset--color--white); }
-
-    /*MY CUSTOM EDITS -- CSS ADDITIONAL*/
-
-    /*IMAGE ZOOM ON FOUCS*/
-    .zoom-on-hover {
-      transition: transform 0.5s ease;
-    }
-  
-    .zoom-on-hover:hover {
-      transform: scale(1.5);
-    }
-  

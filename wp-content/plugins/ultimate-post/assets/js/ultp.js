@@ -531,7 +531,8 @@
     });
 
     // Bricks Builder Backend Slider Support
-    if ($(window.parent.document).find('.bricks-panel-controls').length > 0) {
+    // Bricks Builder Backend Slider Support
+    if ($('.bricks-builder-iframe').length > 0 && $(window.parent.document).find('.bricks-panel-controls').length > 0) {
         setTimeout( () => {
             slideshowDisplay();
         }, 2500 );

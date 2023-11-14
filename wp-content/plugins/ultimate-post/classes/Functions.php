@@ -129,7 +129,7 @@ class Functions{
             'menu_topbar' => array(
                 'utm_source' => 'topbar', 
                 'utm_medium' => 'postx-menu', 
-                'utm_campaign' => 'halloween'
+                'utm_campaign' => 'bfcm'
             ),
             'menu_addons_popup' => array(
                 'utm_source' => 'postx-menu', 
@@ -2589,10 +2589,10 @@ class Functions{
         if ($type == 'banner') {
             return array(
                 array(
-                    'start' => '14-6-2023',
-                    'end' => '28-6-2023',
+                    'start' => '12-11-2023',
+                    'end' => '07-12-2023',
                     'type' => 'banner',
-                    'content' => ULTP_URL.'assets/img/summer-sale-banner.png',
+                    'content' => ULTP_URL.'assets/img/black_friday_banner.png',
                     'force' => true
                 ),
             );
@@ -2630,9 +2630,11 @@ class Functions{
         );
         $loop = new \WP_Query( $args );
         $data[ $empty ? $empty : '' ] = __( '- Select Template -', 'ultimate-post' );
-        while ( $loop->have_posts() ) : $loop->the_post(); 
-            $data[get_the_ID()] = get_the_title();
-        endwhile;
+        if($loop->have_posts()){
+            foreach ( $loop->posts as $post ) {
+                $data[$post->ID] = $post->post_title ;
+            }
+        }
         wp_reset_postdata();
         return $data;
     }
@@ -2658,5 +2660,163 @@ class Functions{
         } else {
             return $key_data;
         }
+    }
+
+    /**
+     * Get Option Value bypassing cache
+     * Inspired By WordPress Core get_option
+     * @since v.3.1.6
+     * @param string $option Option Name.
+     * @param boolean $default_value option default value.
+     * @return mixed
+     */
+    public function get_option_without_cache($option, $default_value=false) {
+        global $wpdb;
+
+        if ( is_scalar( $option ) ) {
+            $option = trim( $option );
+        }
+    
+        if ( empty( $option ) ) {
+            return false;
+        }
+
+        $value = $default_value;
+
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT option_value FROM $wpdb->options WHERE option_name = %s LIMIT 1", $option ) );
+
+        if ( is_object( $row ) ) {
+            $value = $row->option_value;
+        } else {
+            return apply_filters( "ultp_default_option_{$option}", $default_value, $option );
+        }
+
+        return apply_filters( "ultp_option_{$option}", maybe_unserialize( $value ), $option );
+    }
+
+    /**
+     * Get Transient Value bypassing cache
+     * Inspired By WordPress Core get_transient
+     * @since v.3.1.6
+     * @param string $transient Transient Name.
+     * @return mixed
+     */
+    public function get_transient_without_cache($transient) {
+        $transient_option = '_transient_' . $transient;
+        $transient_timeout = '_transient_timeout_' . $transient;
+        $timeout           = $this->get_option_without_cache( $transient_timeout );
+
+        if ( false !== $timeout && $timeout < time() ) {
+            delete_option( $transient_option );
+            delete_option( $transient_timeout );
+            $value = false;
+        }
+
+        if ( ! isset( $value ) ) {
+			$value = $this->get_option_without_cache( $transient_option );
+		}
+
+        return apply_filters( "ultp_transient_{$transient}", $value, $transient );
+    }
+
+    /**
+     * Set transient without adding to the cache
+     * Inspired By WordPress Core set_transient
+     * @since v.3.1.6
+     * @param string $transient Transient Name.
+     * @param mixed $value Transient Value.
+     * @param integer $expiration Time until expiration in seconds.
+     * @return bool
+     */
+    public function set_transient_without_cache($transient, $value, $expiration = 0) {
+        $expiration = (int) $expiration;
+
+        $transient_timeout = '_transient_timeout_' . $transient;
+		$transient_option  = '_transient_' . $transient;
+
+        $result = false;
+
+        if ( false === $this->get_option_without_cache( $transient_option ) ) {
+			$autoload = 'yes';
+			if ( $expiration ) {
+				$autoload = 'no';
+				$this->add_option_without_cache( $transient_timeout, time() + $expiration, 'no' );
+			}
+			$result = $this->add_option_without_cache( $transient_option, $value, $autoload );
+		} else {
+			/*
+			 * If expiration is requested, but the transient has no timeout option,
+			 * delete, then re-create transient rather than update.
+			 */
+			$update = true;
+
+			if ( $expiration ) {
+				if ( false === $this->get_option_without_cache( $transient_timeout ) ) {
+					delete_option( $transient_option );
+					$this->add_option_without_cache( $transient_timeout, time() + $expiration, 'no' );
+					$result = $this->add_option_without_cache( $transient_option, $value, 'no' );
+					$update = false;
+				} else {
+					update_option( $transient_timeout, time() + $expiration );
+				}
+			}
+
+			if ( $update ) {
+				$result = update_option( $transient_option, $value );
+			}
+		}
+
+        return $result;
+
+    }
+
+    /**
+     * Add option without adding to the cache
+     * Inspired By WordPress Core set_transient
+     * @since v.3.1.6
+     * @param string $option option name.
+     * @param string $value option value.
+     * @param string $autoload whether to load wordpress startup.
+     * @return bool
+     */
+    public function add_option_without_cache( $option, $value = '', $autoload = 'yes' ) {
+        global $wpdb;
+    
+    
+        if ( is_scalar( $option ) ) {
+            $option = trim( $option );
+        }
+    
+        if ( empty( $option ) ) {
+            return false;
+        }
+    
+        wp_protect_special_option( $option );
+    
+        if ( is_object( $value ) ) {
+            $value = clone $value;
+        }
+    
+        $value = sanitize_option( $option, $value );
+    
+        /*
+         * Make sure the option doesn't already exist.
+         */
+        
+        if ( apply_filters( "ultp_default_option_{$option}", false, $option, false ) !== $this->get_option_without_cache( $option ) ) {
+            return false;
+        }
+        
+    
+        $serialized_value = maybe_serialize( $value );
+        $autoload         = ( 'no' === $autoload || false === $autoload ) ? 'no' : 'yes';
+
+    
+        $result = $wpdb->query( $wpdb->prepare( "INSERT INTO `$wpdb->options` (`option_name`, `option_value`, `autoload`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `option_name` = VALUES(`option_name`), `option_value` = VALUES(`option_value`), `autoload` = VALUES(`autoload`)", $option, $serialized_value, $autoload ) );
+        if ( ! $result ) {
+            return false;
+        }
+    
+        return true;
     }
 }

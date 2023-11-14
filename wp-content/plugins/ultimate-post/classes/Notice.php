@@ -29,7 +29,7 @@ class Notice {
                     $this->type = $notice['type'];
                     $this->content = $notice['content'];
                     $this->force = $notice['force'];
-                    // add_action('admin_notices', array($this, 'ultp_installation_notice_callback'));
+                    add_action('admin_notices', array($this, 'ultp_installation_notice_callback'));
                 }
             }
         }
@@ -48,7 +48,8 @@ class Notice {
 			return ;
         }
         if (sanitize_key($_GET['disable_postx_notice_' . $this->notice_version]) == 'yes') {
-            set_transient( 'ultp_get_pro_notice_' . $this->notice_version, 'off', 2592000 ); // 30 days notice
+            // set_transient( 'ultp_get_pro_notice_' . $this->notice_version, 'off', 2592000 ); // 30 days notice
+            ultimate_post()->set_transient_without_cache( 'ultp_get_pro_notice_' . $this->notice_version, 'off', 2592000 ); // 30 (2592000) days notice
         }
 	}
 
@@ -60,7 +61,8 @@ class Notice {
 	 * @return STRING
 	 */
 	public function ultp_installation_notice_callback() {
-		if (ultimate_post()->get_tran('ultp_get_pro_notice_' . $this->notice_version) != 'off') {
+        // ultimate_post()->get_tran('ultp_get_pro_notice_' . $this->notice_version) != 'off'
+		if (ultimate_post()->get_transient_without_cache('ultp_get_pro_notice_' . $this->notice_version) != 'off') {
             if (!ultimate_post()->is_lc_active() && ($this->force || get_transient('wpxpo_installation_date') != 'yes')) {
                 if (!isset($_GET['disable_postx_notice_' . $this->notice_version])) {
                     $this->ultp_notice_css();
